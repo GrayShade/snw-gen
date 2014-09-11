@@ -99,7 +99,7 @@
             var scoreVector = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
             if (character.attributes.wisdom >= 15)
-                character.modifiers.xp_bonus = 5;
+                character.modifiers.xp_bonus += 5;
         }
 
         function computeCharismaModifiers(character) {
@@ -109,8 +109,7 @@
         }
 
         function computeThiefAbilities(character, level) {
-            // TODO Racial bonuses
-            return {
+            var abilities = {
                 climbWalls: 84 + level,
                 delicateTasks: Math.min(level < 9 ? 10 + level * 5 : (level - 3) * 10, 100),
                 hearSounds: getModifier(level, [1, 3, 7, 11], ['3 in 6', '4 in 6', '5 in 6', '6 in 6']),
@@ -118,6 +117,27 @@
                 moveSilently: Math.min(level < 7 ? 15 + level * 5 : (level - 2) * 10, 100),
                 openLocks: Math.min(level < 8 ? 5 + level * 5 : 5 + (level - 3) * 10, 100)
             };
+
+            switch (character.race) {
+                case 'dwarf':
+                    abilities.delicateTasks += 10;
+                    abilities.hideInShadows += 5;
+                    abilities.moveSilently += 5;
+                    abilities.openLocks += 5;
+                    break;
+                case 'elf':
+                    abilities.hideInShadows += 15;
+                    abilities.moveSilently += 10;
+                    break;
+                case 'halfling':
+                    abilities.delicateTasks += 5;
+                    abilities.hideInShadows += 10;
+                    abilities.moveSilently += 10;
+                    abilities.openLocks += 10;
+                    break;
+            }
+
+            return abilities;
         }
 
         function computeRaceBonuses(character) {
@@ -172,20 +192,24 @@
 
             switch (character['class']) {
                 case 'cleric':
+                    character.modifiers.xp_bonus += 5;
                     abilities.push('spell casting');
                     abilities.push('turn undead');
                     abilities.push('+2 bonus on saving throw rolls against being paralyzed or poisoned');
                     break;
                 case 'fighter':
+                    character.modifiers.xp_bonus += 5;
                     abilities.push('one attack per level each round against creatures with 1HD or less');
                     abilities.push('on a Dexterity score of 14 or better Fighters can fight on the defensive (parry)');
                     abilities.push('Fighters with a high Strength can have bonuses to hit and on damage');
                     break;
                 case 'magic-user':
+                    character.modifiers.xp_bonus += 5;
                     abilities.push('spell casting');
                     abilities.push('+2 on all saving throw rolls against spells, including spells from magic wands and staffs');
                     break;
                 case 'thief':
+                    character.modifiers.xp_bonus += 5;
                     character.thiefAbilities = computeThiefAbilities(character, 1);
                     abilities.push('+4 to hit and double damage when attacking with surprise, from behind (backstab)');
                     abilities.push('+2 bonus on saving throws against devices, including traps, magical wands or staffs, and other magical devices');
@@ -207,7 +231,9 @@
                 },
                 race: $('#race').val(),
                 'class': $('#class').val(),
-                modifiers: {},
+                modifiers: {
+                    xp_bonus: 0
+                },
                 bonuses: [],
                 abilities: [],
                 thiefAbilities: {}
@@ -222,9 +248,44 @@
 
             computeRaceBonuses(character);
             computeClassBonuses(character);
-            computeThiefAbilities(character, 1);
 
             return character;
+        }
+
+        function dumpCharacter(character) {
+            var buffer = "";
+            buffer += "Race: " + character["race"] + "\n";
+            buffer += "Class: " + character["class"] + "\n";
+            buffer += "\n";
+            buffer += "Attributes\n";
+            for (var key in character.attributes) {
+                buffer += "  " + key + ": " + character.attributes[key] + "\n";
+            }
+            buffer += "\n";
+            buffer += "Bonuses\n";
+            for (var i = 0; i < character.bonuses.length; ++i) {
+                buffer += "  " + character.bonuses[i] + "\n";
+            }
+            buffer += "\n";
+            buffer += "Modifiers\n";
+            for (var key in character.modifiers) {
+                buffer += "  " + key + ": " + character.modifiers[key] + "\n";
+            }
+            buffer += "\n";
+            buffer += "Abilities\n";
+            for (var i = 0; i < character.abilities.length; ++i) {
+                buffer += "  " + character.abilities[i] + "\n";
+            }
+
+            if (character.class == 'thief') {
+                buffer += "\n";
+                buffer += "Thief abilities\n";
+                for (var key in character.thiefAbilities) {
+                    buffer += "  " + key + ": " + character.thiefAbilities[key] + "\n";
+                }
+            }
+
+            $("#dump").text(buffer);
         }
 
         $(document).ready(function () {
@@ -236,38 +297,8 @@
             });
             $('#generate').click(function () {
                 var character = getCharacter();
-                console.log(character);
-                var buffer = "";
-                buffer += "Race: " + character["race"] + "\n";
-                buffer += "Class: " + character["class"] + "\n";
-                buffer += "\n";
-                buffer += "Attributes\n";
-                for (var key in character.attributes) {
-                    buffer += "  " + key + ": " + character.attributes[key] + "\n";
-                }
-                buffer += "\n";
-                buffer += "Bonuses\n";
-                for (var i = 0; i < character.bonuses.length; ++i) {
-                    buffer += "  " + character.bonuses[i] + "\n";
-                }
-                buffer += "\n";
-                buffer += "Modifiers\n";
-                for (var key in character.modifiers) {
-                    buffer += "  " + key + ": " + character.modifiers[key] + "\n";
-                }
-                buffer += "\n";
-                buffer += "Abilities\n";
-                for (var i = 0; i < character.abilities.length; ++i) {
-                    buffer += "  " + character.abilities[i] + "\n";
-                }
-                if (character['class'] == 'thief') {
-                    buffer += "\n";
-                    buffer += "Thief abilities\n";
-                    for (var key in character.thiefAbilities) {
-                        buffer += "  " + key + ": " + character.thiefAbilities[key] + "\n";
-                    }
-                }
-                $("#dump").text(buffer);
+
+                dumpCharacter(character);
             });
         });
     </script>
