@@ -1,0 +1,203 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <script src="jquery-2.1.1.min.js"></script>
+    <script>
+        function getModifier(score, scoreVector, modifierVector) {
+            if (scoreVector.length != modifierVector.length) {
+                throw new Error("Score vector differs in length from modifier vector");
+            }
+            for (var i = 0; i < scoreVector.length; i++) {
+                if (scoreVector[i] >= score) {
+                    return modifierVector[i];
+                }
+            }
+
+            throw new Error("Unable to find score " + score + " in score vector");
+        }
+
+        function computeStrengthModifiers(character) {
+            var scoreVector = [4, 6, 8, 12, 15, 16, 17, 18];
+
+            character.modifiers.to_hit = getModifier(character.attributes.strength, scoreVector, [-2, -1, 0, 0, 1, 1, 2, 2]);
+            character.modifiers.damage = getModifier(character.attributes.strength, scoreVector, [-1, 0, 0, 0, 0, 1, 2, 3]);
+            character.modifiers.open_doors = getModifier(character.attributes.strength, scoreVector, ['1', '1', '1-2', '1-2', '1-2', '1-3', '1-4', '1-5']);
+            character.modifiers.carry = getModifier(character.attributes.strength, scoreVector, [-10, -5, 0, 5, 10, 15, 30, 30]);
+
+            if (character.class !== 'fighter') {
+                if (character.modifiers.to_hit > 0) {
+                    character.modifiers.to_hit = 0;
+                }
+                if (character.modifiers.damage > 0) {
+                    character.modifiers.damage = 0;
+                }
+            }
+        }
+
+        function computeDexterityModifiers(character) {
+            var scoreVector = [8, 12, 18];
+
+            character.modifiers.to_hit_missile = getModifier(character.attributes.dexterity, scoreVector, [-1, 0, 1]);
+            character.modifiers.armor = getModifier(character.attributes.dexterity, scoreVector, [-1, 0, 1]);
+        }
+
+        function computeConstitutionModifiers(character) {
+            var scoreVector = [8, 12, 18];
+
+            character.modifiers.hit_point = getModifier(character.attributes.constitution, scoreVector, [-1, 0, 1]);
+            character.modifiers.raise_dead_survival = getModifier(character.attributes.constitution, scoreVector, ['50%', '75%', '100%']);
+        }
+
+        function computeIntelligenceModifiers(character) {
+            var scoreVector = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+
+            character.modifiers.max_additional_languages = getModifier(character.attributes.intelligence, scoreVector, [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
+            character.modifiers.max_spell_level = getModifier(character.attributes.intelligence, scoreVector, [4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9]);
+            character.modifiers.new_spell_chance = getModifier(character.attributes.intelligence, scoreVector, ['30%', '40%', '45%', '50%', '50%', '55%', '65%', '65%', '75%', '75%', '85%', '95%']);
+            character.modifiers.min_spells_per_level = getModifier(character.attributes.intelligence, scoreVector, [2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8]);
+            character.modifiers.max_spells_per_level = getModifier(character.attributes.intelligence, scoreVector, [4, 5, 5, 6, 6, 6, 8, 8, 10, 10, 'All', 'All']);
+        }
+
+        function computeWisdomModifiers(character) {
+            var scoreVector = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+
+            if (character.attributes.wisdom >= 15)
+                character.modifiers.xp_bonus = 5;
+        }
+
+        function computeCharismaModifiers(character) {
+            var scoreVector = [4, 6, 8, 12, 15, 17, 18];
+
+            character.modifiers.max_special_hirelings = getModifier(character.attributes.intelligence, scoreVector, [1, 2, 3, 4, 5, 6, 7]);
+        }
+
+        function computeRaceBonuses(character) {
+            var bonuses = character.bonuses;
+
+            switch (character.race) {
+                case 'dwarf':
+                    bonuses.push('+4 on saving throws against magic');
+                    bonuses.push('easily take note of features of stonework');
+                    bonuses.push('darkvision');
+
+                    if (character.class !== 'fighter' && character.class !== 'thief')
+                        throw new Error('Invalid class for dwarvish character');
+
+                    break;
+                case 'elf':
+                    bonuses.push('darkvision');
+                    bonuses.push('4 in 6 chance to find secret doors when searching');
+                    bonuses.push('1 in 6 chance to find secret doors when not searching');
+
+                    if (['fighter', 'magic-user', 'thief'].indexOf(character.class) !== -1)
+                        throw new Error('Invalid class for elven character');
+
+                    break;
+                case 'half-elf':
+                    bonuses.push('darkvision');
+                    bonuses.push('4 in 6 chance to find secret doors when searching');
+
+                    if (['fighter', 'magic-user', 'cleric'].indexOf(character.class) !== -1)
+                        throw new Error('Invalid class for half-elven character');
+
+                    break;
+                case 'halfling':
+                    bonuses.push('+4 on saving throws against magic');
+                    bonuses.push('+1 when using missile weapons');
+
+                    if (['fighter', 'thief'].indexOf(character.class) !== -1)
+                        throw new Error('Invalid class for halfling character');
+                default:
+                    throw new Error("Invalid race " + character.race);
+            }
+
+            if (character.race !== 'human' && ['assassin', 'druid', 'monk', 'paladin', 'ranger'].indexOf(character.class) !== -1) {
+                throw new Error('Invalid class for non-human character');
+            }
+        }
+
+        function getCharacter() {
+            var character = {
+                attributes: {
+                    strength: $('#attr-strength').val(),
+                    dexterity: $('#attr-dexterity').val(),
+                    constitution: $('#attr-constitution').val(),
+                    intelligence: $('#attr-intelligence').val(),
+                    wisdom: $('#attr-wisdom').val(),
+                },
+                race: $('#race').val(),
+                'class': $('#class').val(),
+                modifiers: {},
+                bonuses: []
+            };
+
+            computeStrengthModifiers(character);
+            computeDexterityModifiers(character);
+            computeConstitutionModifiers(character);
+            computeIntelligenceModifiers(character);
+            computeWisdomModifiers(character);
+            computeCharismaModifiers(character);
+
+            computeRaceBonuses(character);
+
+            return character;
+        }
+
+        $(document).ready(function () {
+            $('#generate').click(function () {
+                var character = getCharacter();
+                console.log(character);
+            });
+        });
+    </script>
+</head>
+<body>
+    <div>
+        <fieldset>
+            <legend>Attributes</legend>
+
+            <table>
+                <tr><td><label for="attr-strength">Strength:</label></td><td><input id="attr-strength" type="number" /></td></tr>
+                <tr><td><label for="attr-dexterity">Dexterity:</label></td><td><input id="attr-dexterity" type="number" /></td></tr>
+                <tr><td><label for="attr-constitution">Constitution:</label></td><td><input id="attr-constitution" type="number" /></td></tr>
+                <tr><td><label for="attr-intelligence">Intelligence:</label></td><td><input id="attr-intelligence" type="number" /></td></tr>
+                <tr><td><label for="attr-wisdom">Wisdom:</label></td><td><input id="attr-wisdom" type="number" /></td></tr>
+            </table>
+        </fieldset>
+
+        <table>
+                <tr>
+                    <td><label for="race">Race:</label></td>
+                    <td>
+                        <select id="race">
+                            <option value="dwarf">Dwarf</option>
+                            <option value="elf">Elf</option>
+                            <option value="half-elf">Half-Elf</option>
+                            <option value="halfling">Halfling</option>
+                        </select>
+                    </td>
+                </tr>
+                <tr>
+                    <td><label for="race">Class:</label></td>
+                    <td>
+                        <select id="class">
+                            <option value="fighter">Fighter</option>
+                            <option value="thief">Thief</option>
+                            <option value="magic-user">Magic User</option>
+                            <option value="cleric">Cleric</option>
+                            <option value="assassin">Assassin</option>
+                            <option value="druid">Druid</option>
+                            <option value="monk">Monk</option>
+                            <option value="paladin">Paladin</option>
+                            <option value="ranger">Ranger</option>
+                        </select>
+                    </td>
+                </tr>
+        </table>
+        <button id="generate">Generate</button>
+    </div>
+</body>
+</html>
