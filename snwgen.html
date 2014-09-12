@@ -11,6 +11,8 @@
     </style>
     <script src="jquery-2.1.1.min.js"></script>
     <script>
+        "use strict";
+
         function rollDie(die) {
             return Math.floor(Math.random() * die) + 1;
         }
@@ -44,6 +46,7 @@
             if (scoreVector.length != modifierVector.length) {
                 throw new Error("Score vector differs in length from modifier vector");
             }
+
             for (var i = 0; i < scoreVector.length; i++) {
                 if (scoreVector[i] >= score) {
                     return modifierVector[i];
@@ -56,48 +59,54 @@
         function computeStrengthModifiers(character) {
             var scoreVector = [4, 6, 8, 12, 15, 16, 17, 18];
 
-            character.modifiers.to_hit = getModifier(character.attributes.strength, scoreVector, [-2, -1, 0, 0, 1, 1, 2, 2]);
-            character.modifiers.damage = getModifier(character.attributes.strength, scoreVector, [-1, 0, 0, 0, 0, 1, 2, 3]);
-            character.modifiers.open_doors = getModifier(character.attributes.strength, scoreVector, ['1', '1', '1-2', '1-2', '1-2', '1-3', '1-4', '1-5']);
-            character.modifiers.carry = getModifier(character.attributes.strength, scoreVector, [-10, -5, 0, 5, 10, 15, 30, 30]);
+            var modifiers = character.modifiers;
+            var strength = character.attributes.strength;
+
+            modifiers.to_hit = getModifier(strength, scoreVector, [-2, -1, 0, 0, 1, 1, 2, 2]);
+            modifiers.damage = getModifier(strength, scoreVector, [-1, 0, 0, 0, 0, 1, 2, 3]);
+            modifiers.open_doors = getModifier(strength, scoreVector, ['1', '1', '1-2', '1-2', '1-2', '1-3', '1-4', '1-5']);
+            modifiers.carry = getModifier(strength, scoreVector, [-10, -5, 0, 5, 10, 15, 30, 30]);
 
             if (character.class !== 'fighter') {
-                if (character.modifiers.to_hit > 0) {
-                    character.modifiers.to_hit = 0;
-                }
-                if (character.modifiers.damage > 0) {
-                    character.modifiers.damage = 0;
-                }
+                modifiers.to_hit = Math.min(modifiers.to_hit, 0);
+                modifiers.damage = Math.min(modifiers.damage, 0);
             }
         }
 
         function computeDexterityModifiers(character) {
             var scoreVector = [8, 12, 18];
 
-            character.modifiers.to_hit_missile = getModifier(character.attributes.dexterity, scoreVector, [-1, 0, 1]);
-            character.modifiers.armor = getModifier(character.attributes.dexterity, scoreVector, [-1, 0, 1]);
+            var modifiers = character.modifiers;
+            var dexterity = character.attributes.dexterity;
+
+            modifiers.to_hit_missile = getModifier(dexterity, scoreVector, [-1, 0, 1]);
+            modifiers.armor = getModifier(dexterity, scoreVector, [-1, 0, 1]);
         }
 
         function computeConstitutionModifiers(character) {
             var scoreVector = [8, 12, 18];
 
-            character.modifiers.hit_point = getModifier(character.attributes.constitution, scoreVector, [-1, 0, 1]);
-            character.modifiers.raise_dead_survival = getModifier(character.attributes.constitution, scoreVector, ['50%', '75%', '100%']);
+            var modifiers = character.modifiers;
+            var constitution = character.attributes.constitution;
+
+            modifiers.hit_point = getModifier(constitution, scoreVector, [-1, 0, 1]);
+            modifiers.raise_dead_survival = getModifier(constitution, scoreVector, ['50%', '75%', '100%']);
         }
 
         function computeIntelligenceModifiers(character) {
             var scoreVector = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 
-            character.modifiers.max_additional_languages = getModifier(character.attributes.intelligence, scoreVector, [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
-            character.modifiers.max_spell_level = getModifier(character.attributes.intelligence, scoreVector, [4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9]);
-            character.modifiers.new_spell_chance = getModifier(character.attributes.intelligence, scoreVector, ['30%', '40%', '45%', '50%', '50%', '55%', '65%', '65%', '75%', '75%', '85%', '95%']);
-            character.modifiers.min_spells_per_level = getModifier(character.attributes.intelligence, scoreVector, [2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8]);
-            character.modifiers.max_spells_per_level = getModifier(character.attributes.intelligence, scoreVector, [4, 5, 5, 6, 6, 6, 8, 8, 10, 10, 'All', 'All']);
+            var modifiers = character.modifiers;
+            var intelligence = character.attributes.intelligence;
+
+            modifiers.max_additional_languages = getModifier(intelligence, scoreVector, [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6]);
+            modifiers.max_spell_level = getModifier(intelligence, scoreVector, [4, 5, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9]);
+            modifiers.new_spell_chance = getModifier(intelligence, scoreVector, ['30%', '40%', '45%', '50%', '50%', '55%', '65%', '65%', '75%', '75%', '85%', '95%']);
+            modifiers.min_spells_per_level = getModifier(intelligence, scoreVector, [2, 3, 3, 4, 4, 4, 5, 5, 6, 6, 7, 8]);
+            modifiers.max_spells_per_level = getModifier(intelligence, scoreVector, [4, 5, 5, 6, 6, 6, 8, 8, 10, 10, 'All', 'All']);
         }
 
         function computeWisdomModifiers(character) {
-            var scoreVector = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-
             if (character.attributes.wisdom >= 15)
                 character.modifiers.xp_bonus += 5;
         }
@@ -176,6 +185,8 @@
 
                     if (['fighter', 'thief'].indexOf(character.class) === -1)
                         throw new Error('Invalid class for halfling character');
+
+                    break;
                 case 'human':
                     break;
                 default:
@@ -222,12 +233,12 @@
         function getCharacter() {
             var character = {
                 attributes: {
-                    strength: $('#attr-strength').val(),
-                    dexterity: $('#attr-dexterity').val(),
-                    constitution: $('#attr-constitution').val(),
-                    intelligence: $('#attr-intelligence').val(),
-                    wisdom: $('#attr-wisdom').val(),
-                    charisma: $('#attr-charisma').val(),
+                    strength: parseInt($('#strength').val()),
+                    dexterity: parseInt($('#dexterity').val()),
+                    constitution: parseInt($('#constitution').val()),
+                    intelligence: parseInt($('#intelligence').val()),
+                    wisdom: parseInt($('#wisdom').val()),
+                    charisma: parseInt($('#charisma').val()),
                 },
                 race: $('#race').val(),
                 'class': $('#class').val(),
@@ -236,7 +247,6 @@
                 },
                 bonuses: [],
                 abilities: [],
-                thiefAbilities: {}
             };
 
             computeStrengthModifiers(character);
@@ -254,19 +264,6 @@
 
         function dumpCharacter(character) {
             var buffer = "";
-            buffer += "Race: " + character["race"] + "\n";
-            buffer += "Class: " + character["class"] + "\n";
-            buffer += "\n";
-            buffer += "Attributes\n";
-            for (var key in character.attributes) {
-                buffer += "  " + key + ": " + character.attributes[key] + "\n";
-            }
-            buffer += "\n";
-            buffer += "Bonuses\n";
-            for (var i = 0; i < character.bonuses.length; ++i) {
-                buffer += "  " + character.bonuses[i] + "\n";
-            }
-            buffer += "\n";
             buffer += "Modifiers\n";
             for (var key in character.modifiers) {
                 buffer += "  " + key + ": " + character.modifiers[key] + "\n";
@@ -277,7 +274,7 @@
                 buffer += "  " + character.abilities[i] + "\n";
             }
 
-            if (character.class == 'thief') {
+            if (character.hasOwnProperty('thiefAbilities')) {
                 buffer += "\n";
                 buffer += "Thief abilities\n";
                 for (var key in character.thiefAbilities) {
@@ -292,7 +289,7 @@
             $('#roll-attributes').click(function () {
                 var scores = generateAttributes();
                 for (var attr in scores) {
-                    $('#attr-' + attr).val(scores[attr]);
+                    $('#' + attr).val(scores[attr]);
                 }
             });
             $('#generate').click(function () {
@@ -309,12 +306,12 @@
             <legend>Attributes</legend>
 
             <table>
-                <tr><td><label for="attr-strength">Strength:</label></td><td><input id="attr-strength" type="number" /></td></tr>
-                <tr><td><label for="attr-dexterity">Dexterity:</label></td><td><input id="attr-dexterity" type="number" /></td></tr>
-                <tr><td><label for="attr-constitution">Constitution:</label></td><td><input id="attr-constitution" type="number" /></td></tr>
-                <tr><td><label for="attr-intelligence">Intelligence:</label></td><td><input id="attr-intelligence" type="number" /></td></tr>
-                <tr><td><label for="attr-wisdom">Wisdom:</label></td><td><input id="attr-wisdom" type="number" /></td></tr>
-                <tr><td><label for="attr-charisma">Charisma:</label></td><td><input id="attr-charisma" type="number" /></td></tr>
+                <tr><td><label for="strength">Strength:</label></td><td><input id="strength" type="number" /></td></tr>
+                <tr><td><label for="dexterity">Dexterity:</label></td><td><input id="dexterity" type="number" /></td></tr>
+                <tr><td><label for="constitution">Constitution:</label></td><td><input id="constitution" type="number" /></td></tr>
+                <tr><td><label for="intelligence">Intelligence:</label></td><td><input id="intelligence" type="number" /></td></tr>
+                <tr><td><label for="wisdom">Wisdom:</label></td><td><input id="wisdom" type="number" /></td></tr>
+                <tr><td><label for="charisma">Charisma:</label></td><td><input id="charisma" type="number" /></td></tr>
             </table>
         </fieldset>
 
