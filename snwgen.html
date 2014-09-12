@@ -158,7 +158,7 @@
                     bonuses.push('4 in 6 chance to find secret doors when searching');
                     bonuses.push('1 in 6 chance to find secret doors when not searching');
 
-                    if (['fighter', 'magic-user', 'thief'].indexOf(character.class) !== -1)
+                    if (['fighter', 'magic-user', 'thief'].indexOf(character.class) === -1)
                         throw new Error('Invalid class for elven character');
 
                     break;
@@ -166,7 +166,7 @@
                     bonuses.push('darkvision');
                     bonuses.push('4 in 6 chance to find secret doors when searching');
 
-                    if (['fighter', 'magic-user', 'cleric'].indexOf(character.class) !== -1)
+                    if (['fighter', 'magic-user', 'cleric'].indexOf(character.class) === -1)
                         throw new Error('Invalid class for half-elven character');
 
                     break;
@@ -174,7 +174,7 @@
                     bonuses.push('+4 on saving throws against magic');
                     bonuses.push('+1 when using missile weapons');
 
-                    if (['fighter', 'thief'].indexOf(character.class) !== -1)
+                    if (['fighter', 'thief'].indexOf(character.class) === -1)
                         throw new Error('Invalid class for halfling character');
                 case 'human':
                     break;
