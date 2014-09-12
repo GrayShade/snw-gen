@@ -1,15 +1,43 @@
 ﻿<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <title></title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Swords &amp; Wizardry Character Generator</title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+
     <style type="text/css">
         #dump {
             font-size: 18pt;
             font-weight: bold;
         }
+
+        #character-details {
+            float: left;
+            width: 300px;
+        }
+
+        #character-details .input-group-addon {
+            min-width: 110px;
+            text-align: left;
+        }
     </style>
+
     <script src="jquery-2.1.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
     <script>
         "use strict";
 
@@ -230,8 +258,8 @@
             }
         }
 
-        function getCharacter() {
-            var character = {
+        function makeCharacter() {
+            return {
                 attributes: {
                     strength: parseInt($('#strength').val()),
                     dexterity: parseInt($('#dexterity').val()),
@@ -240,15 +268,17 @@
                     wisdom: parseInt($('#wisdom').val()),
                     charisma: parseInt($('#charisma').val()),
                 },
-                race: $('#race').val(),
-                'class': $('#class').val(),
+                race: $('#race').val().toLowerCase(),
+                'class': $('#class').val().toLowerCase(),
                 modifiers: {
                     xp_bonus: 0
                 },
                 bonuses: [],
                 abilities: [],
             };
+        }
 
+        function computeCharacterStats(character) {
             computeStrengthModifiers(character);
             computeDexterityModifiers(character);
             computeConstitutionModifiers(character);
@@ -286,6 +316,15 @@
         }
 
         $(document).ready(function () {
+            var characterRace = $('#race');
+            var characterClass = $('#class');
+            $('#race-group a').click(function () {
+                characterRace.val($(this).text());
+            });
+            $('#class-group a').click(function () {
+                characterClass.val($(this).text());
+            });
+
             $('#roll-attributes').click(function () {
                 var scores = generateAttributes();
                 for (var attr in scores) {
@@ -294,8 +333,8 @@
             });
             $('#generate').click(function () {
                 try {
-                    var character = getCharacter();
-
+                    var character = makeCharacter();
+                    computeCharacterStats(character);
                     dumpCharacter(character);
                 } catch (e) {
                     $('#dump').text(e.message);
@@ -305,55 +344,71 @@
     </script>
 </head>
 <body>
-    <div>
-        <fieldset>
-            <legend>Attributes</legend>
+    <div id="character-details">
+        <div id="attribute-group">
+            <div class="input-group">
+                <span class="input-group-addon">Strength</span>
+                <input id="strength" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <span class="input-group-addon">Dexterity</span>
+                <input id="dexterity" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <span class="input-group-addon">Constitution</span>
+                <input id="constitution" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <span class="input-group-addon">Intelligence</span>
+                <input id="intelligence" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <span class="input-group-addon">Wisdom</span>
+                <input id="wisdom" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <span class="input-group-addon">Charisma</span>
+                <input id="charisma" type="text" class="form-control" />
+            </div>
+        </div>
 
-            <table>
-                <tr><td><label for="strength">Strength:</label></td><td><input id="strength" type="number" /></td></tr>
-                <tr><td><label for="dexterity">Dexterity:</label></td><td><input id="dexterity" type="number" /></td></tr>
-                <tr><td><label for="constitution">Constitution:</label></td><td><input id="constitution" type="number" /></td></tr>
-                <tr><td><label for="intelligence">Intelligence:</label></td><td><input id="intelligence" type="number" /></td></tr>
-                <tr><td><label for="wisdom">Wisdom:</label></td><td><input id="wisdom" type="number" /></td></tr>
-                <tr><td><label for="charisma">Charisma:</label></td><td><input id="charisma" type="number" /></td></tr>
-            </table>
-        </fieldset>
+        <div class="input-group" id="race-group">
+            <div class="input-group">
+                <span class="input-group-addon">Race</span>
+                <input id="race" type="text" class="form-control" readonly="readonly" value="Dwarf"/>
+                <div class="input-group-btn">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+                    <ul class="dropdown-menu dropdown-menu-right" role="menu">
+                        <li><a href="#">Dwarf</a></li>
+                        <li><a href="#">Elf</a></li>
+                        <li><a href="#">Halfling</a></li>
+                        <li><a href="#">Human</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-        <table>
-                <tr>
-                    <td><label for="race">Race:</label></td>
-                    <td>
-                        <select id="race">
-                            <option value="dwarf">Dwarf</option>
-                            <option value="elf">Elf</option>
-                            <option value="half-elf">Half-Elf</option>
-                            <option value="halfling">Halfling</option>
-                            <option value="human">Human</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td><label for="race">Class:</label></td>
-                    <td>
-                        <select id="class">
-                            <option value="fighter">Fighter</option>
-                            <option value="thief">Thief</option>
-                            <option value="magic-user">Magic User</option>
-                            <option value="cleric">Cleric</option>
-                            <option value="assassin">Assassin</option>
-                            <option value="druid">Druid</option>
-                            <option value="monk">Monk</option>
-                            <option value="paladin">Paladin</option>
-                            <option value="ranger">Ranger</option>
-                        </select>
-                    </td>
-                </tr>
-        </table>
-        <button id="roll-attributes">Roll attributes</button>
-        <button id="generate">Generate</button>
-        <br/>
-        <textarea id="dump" rows="20" cols="80">
-        </textarea>
+        <div class="input-group" id="class-group">
+            <div class="input-group">
+                <span class="input-group-addon">Class</span>
+                <input id="class" type="text" class="form-control" readonly="readonly" value="Cleric"/>
+                <div class="input-group-btn">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+                    <ul class="dropdown-menu dropdown-menu-right" role="menu">
+                        <li><a href="#">Cleric</a></li>
+                        <li><a href="#">Fighter</a></li>
+                        <li><a href="#">Magic-User</a></li>
+                        <li><a href="#">Thief</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-default" id="roll-attributes">Roll attributes</button>
+        <button type="button" class="btn btn-default" id="generate">Generate</button>
     </div>
+    <div style="float: left;">
+        <textarea id="dump" rows=20 cols=80></textarea>
+    </div>
+    <div style="clear: both;"></div>
 </body>
 </html>
