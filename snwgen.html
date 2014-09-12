@@ -293,9 +293,13 @@
                 }
             });
             $('#generate').click(function () {
-                var character = getCharacter();
+                try {
+                    var character = getCharacter();
 
-                dumpCharacter(character);
+                    dumpCharacter(character);
+                } catch (e) {
+                    $('#dump').text(e.message);
+                }
             });
         });
     </script>
