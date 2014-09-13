@@ -63,7 +63,7 @@
             </div>
             <div class="col-md-2">
                 <div class="input-group">
-                    <label for="armor-class" class="input-group-addon">Armor Class</label>
+                    <span class="input-group-addon">Armor Class</span>
                     <span class="form-control">{{armorClass}}</span>
                 </div>
             </div>
@@ -315,14 +315,15 @@
                     wisdom: parseInt($('#wisdom').val()),
                     charisma: parseInt($('#charisma').val()),
                 },
-                race: $('#race').val().toLowerCase(),
-                'class': $('#class').val().toLowerCase(),
+                race: $('#race').val(),
+                'class': $('#class').val(),
                 modifiers: {
                     xp_bonus: 0
                 },
                 bonuses: [],
                 abilities: [],
                 inventory: [],
+                armor_class: 0,
                 weight: 0,
                 gold: 0,
                 xp: 0
@@ -369,8 +370,74 @@
         var inventoryItemTemplate;
         var character;
 
+        function saveState() {
+            localStorage["character"] = JSON.stringify(character);
+        }
+
+        function addInventoryLine(item) {
+            $('#inventory-list').append(inventoryItemTemplate(item));
+
+            character.weight += item.weight * item.quantity;
+
+            $('#weight-carried').val(character.weight);
+
+            var domNode = $('#inventory-list').last();
+            domNode.find('.btn-success').click(function () {
+                item.quantity++;
+                character.weight += item.weight;
+
+                $('#weight-carried').val(character.weight);
+
+                domNode.find('.quantity').text(item.quantity);
+            });
+
+            domNode.find('.btn-danger').click(function () {
+                if (item.quantity === 0) {
+                    return;
+                }
+
+                item.quantity--;
+                character.weight -= item.weight;
+
+                $('#weight-carried').val(character.weight);
+
+                domNode.find('.quantity').text(item.quantity);
+            });
+        }
+
+        function loadState() {
+            var data = localStorage["character"];
+            if (data) {
+                character = JSON.parse(data);
+
+                dumpCharacter(character);
+
+                $('#strength').val(character.attributes.intelligence);
+                $('#dexterity').val(character.attributes.dexterity);
+                $('#constitution').val(character.attributes.constitution);
+                $('#intelligence').val(character.attributes.intelligence);
+                $('#wisdom').val(character.attributes.wisdom);
+                $('#charisma').val(character.attributes.charisma);
+
+                $('#race').val(character.race);
+                $('#race-group a').text(character.race);
+
+                $('#class').val(character['class']);
+                $('#class-group a').text(character['class']);
+
+                $('#armor-class').val(character.armor_class);
+                $('#weight-carried').val(character.weight);
+                $('#gold-pieces').val(character.gold);
+                $('#experience-points').val(character.xp);
+
+                for (var i = 0; i < character.inventory.length; ++i) {
+                    addInventoryLine(character.inventory[i]);
+                }
+            }
+        }
+
         $(document).ready(function () {
-            var inventoryItemTemplate = Handlebars.compile($('#inventory-item-template').html());
+            inventoryItemTemplate = Handlebars.compile($('#inventory-item-template').html());
 
             var characterRace = $('#race');
             var characterClass = $('#class');
@@ -392,14 +459,21 @@
                     character = makeCharacter();
                     computeCharacterStats(character);
 
+                    $('#armor-class').val(character.armor_class);
                     $('#weight-carried').val(character.weight);
                     $('#gold-pieces').val(character.gold);
                     $('#experience-points').val(character.xp);
 
                     dumpCharacter(character);
+
+                    saveState();
                 } catch (e) {
                     $('#status').val(e.message);
                 }
+            });
+
+            $('#save').click(function () {
+                saveState();
             });
 
             $('#weight-carried').change(function () {
@@ -407,6 +481,7 @@
                     var weightCarried = parseFloat($(this).val());
                     if (weightCarried !== character.weight) {
                         character.weight = weightCarried;
+                        saveState();
                     }
                 } catch (e) {
                     $('#status').val(e.message);
@@ -418,6 +493,7 @@
                     var goldPieces = parseFloat($(this).val());
                     if (goldPieces !== character.gold) {
                         character.gold = goldPieces;
+                        saveState();
                     }
                 } catch (e) {
                     $('#status').val(e.message);
@@ -429,6 +505,19 @@
                     var experiencePoints = parseInt($(this).val());
                     if (experiencePoints !== character.xp) {
                         character.xp = experiencePoints;
+                        saveState();
+                    }
+                } catch (e) {
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#armor-class').change(function () {
+                try {
+                    var armorClass = parseInt($(this).val());
+                    if (armorClass !== character.armor_class) {
+                        character.armor_class = armorClass;
+                        saveState();
                     }
                 } catch (e) {
                     $('#status').val(e.message);
@@ -439,7 +528,7 @@
                 try {
                     var name = $('#name').val();
                     var damage = $('#damage').val();
-                    var armorClass = $('#armor-class').val();
+                    var armorClass = $('#armor-class2').val();
                     var weight = parseFloat($('#weight').val());
                     var quantityString = $('#quantity').val();
                     
@@ -461,54 +550,33 @@
                             $('#weight-carried').val(character.weight);
 
                             $('#inventory-list').eq(i).find('.quantity').text(character.inventory[i].quantity);
+
+                            saveState();
                             break;
                         }
                     }
 
-                    var item = {
-                        name: name,
-                        damage: damage,
-                        armorClass: armorClass,
-                        weight: weight,
-                        quantity: quantity
-                    };
-
                     if (!found) {
+                        var item = {
+                            name: name,
+                            damage: damage,
+                            armorClass: armorClass,
+                            weight: weight,
+                            quantity: quantity
+                        };
+
                         character.inventory.push(item);
 
-                        $('#inventory-list').append(inventoryItemTemplate(item));
+                        addInventoryLine(item);
 
-                        character.weight += weight * quantity;
-
-                        $('#weight-carried').val(character.weight);
-
-                        var domNode = $('#inventory-list').last();
-                        domNode.find('.btn-success').click(function () {
-                            item.quantity++;
-                            character.weight += item.weight;
-
-                            $('#weight-carried').val(character.weight);
-
-                            domNode.find('.quantity').text(item.quantity);
-                        });
-
-                        domNode.find('.btn-danger').click(function () {
-                            if (item.quantity === 0) {
-                                return;
-                            }
-
-                            item.quantity--;
-                            character.weight -= item.weight;
-
-                            $('#weight-carried').val(character.weight);
-
-                            domNode.find('.quantity').text(item.quantity);
-                        });
+                        saveState();
                     }
                 } catch (e) {
                     $('#status').val(e.message);
                 }
             });
+
+            loadState();
         });
     </script>
 </head>
@@ -540,6 +608,10 @@
                 <input id="charisma" type="text" class="form-control" />
             </div>
             <div class="input-group">
+                <label for="armor-class" class="input-group-addon">Armor Class</label>
+                <input id="armor-class" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
                 <label class="input-group-addon">Weight Carried</label>
                 <input id="weight-carried" type="text" class="form-control" />
             </div>
@@ -556,14 +628,14 @@
         <div class="input-group" id="race-group">
             <div class="input-group">
                 <span class="input-group-addon">Race</span>
-                <input id="race" type="text" class="form-control" readonly="readonly" value="Dwarf" />
+                <input id="race" type="text" class="form-control" readonly="readonly" value="dwarf" />
                 <div class="input-group-btn">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu dropdown-menu-right" role="menu">
-                        <li><a href="#">Dwarf</a></li>
-                        <li><a href="#">Elf</a></li>
-                        <li><a href="#">Halfling</a></li>
-                        <li><a href="#">Human</a></li>
+                        <li><a href="#">dwarf</a></li>
+                        <li><a href="#">elf</a></li>
+                        <li><a href="#">halfling</a></li>
+                        <li><a href="#">human</a></li>
                     </ul>
                 </div>
             </div>
@@ -572,14 +644,14 @@
         <div class="input-group" id="class-group">
             <div class="input-group">
                 <span class="input-group-addon">Class</span>
-                <input id="class" type="text" class="form-control" readonly="readonly" value="Cleric" />
+                <input id="class" type="text" class="form-control" readonly="readonly" value="cleric" />
                 <div class="input-group-btn">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu dropdown-menu-right" role="menu">
-                        <li><a href="#">Cleric</a></li>
-                        <li><a href="#">Fighter</a></li>
-                        <li><a href="#">Magic-User</a></li>
-                        <li><a href="#">Thief</a></li>
+                        <li><a href="#">cleric</a></li>
+                        <li><a href="#">fighter</a></li>
+                        <li><a href="#">magic-user</a></li>
+                        <li><a href="#">thief</a></li>
                     </ul>
                 </div>
             </div>
@@ -601,42 +673,46 @@
     <div class="panel panel-default">
         <div class="panel-body">
             <div class="row">
-                <div class="col-md-2">
+                <div class="col-sm-2">
                     <div class="input-group">
                         <label for="name" class="input-group-addon">Item</label>
                         <input type="text" id="name" class="form-control" />
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-sm-2">
                     <div class="input-group">
                         <label for="damage" class="input-group-addon">Damage</label>
                         <input type="text" id="damage" class="form-control" />
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-sm-2">
                     <div class="input-group">
-                        <label for="armor-class" class="input-group-addon">Armor Class</label>
-                        <input type="text" id="armor-class" class="form-control" />
+                        <label for="armor-class2" class="input-group-addon">Armor Class</label>
+                        <input type="text" id="armor-class2" class="form-control" />
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-sm-2">
                     <div class="input-group">
                         <label for="weight" class="input-group-addon">Weight</label>
                         <input type="text" id="weight" class="form-control" />
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-sm-2">
                     <div class="input-group">
                         <label for="quantity" class="input-group-addon">Quantity</label>
                         <input type="text" id="quantity" class="form-control" />
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-sm-2">
                     <button id="inventory-add" class="btn btn-primary">Add</button>
                 </div>
             </div>
         </div>
     </div>
+    <div>
+        <button id="save" class="btn btn-success">Save</button>
+    </div>
+    <p />
     <div>
         <input type="text" id="status" style="width:50%" />
     </div>
