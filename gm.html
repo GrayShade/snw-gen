@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Swords &amp; Referee Tools</title>
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <style type="text/css">
+        #encounter-description {
+            color: red;
+            font-size: 16pt;
+            font-weight: bold;
+        }
+    </style>
+
+    <script src="jquery-2.1.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript">
+        function Observable(initial) {
+            var self = this;
+            var observers = [];
+            var value = initial;
+            var values = [];
+            var updating = false;
+
+            this.value = function () {
+                return value;
+            }
+
+            this.addObserver = function (observer) {
+                observers.push(observer);
+                observer(value);
+                return self;
+            }
+
+            this.set = function (newValue) {
+                values.push(newValue);
+                if (!updating) {
+                    updating = true;
+                    while (values.length > 0) {
+                        value = values.shift();
+                        for (var i = 0; i < observers.length; ++i) {
+                            observers[i](value);
+                        }
+                    }
+                    updating = false;
+                }
+            }
+
+            this.update = function (f) {
+                self.set(f(value));
+                return self;
+            }
+
+            this.inc = function () {
+                var delta = arguments[0] || 1;
+                return self.update(function (value) { return value + delta; });
+            }
+
+            this.dec = function () {
+                var delta = arguments[0] || 1;
+                return self.update(function (value) { return value - delta; });
+            }
+        }
+
+        function rollDie(die) {
+            return Math.floor(Math.random() * die) + 1;
+        }
+
+        function roll(die, count) {
+            var result = [];
+            for (var i = 0; i < count; ++i) {
+                result.push(rollDie(die));
+            }
+            return result;
+        }
+
+        function sumRoll(die, count) {
+            return roll(die, count).reduce(function(a, b) {
+                return a + b;
+            });
+        }
+
+        function generateRandomEncounter() {
+            var result = sumRoll(20, 1);
+            switch (result) {
+            case 1:
+                return {
+                    'type': 'skeleton',
+                    'count': sumRoll(6, 1)
+                }
+                break;
+            case 2:
+                return {
+                    'type': 'stirge',
+                    'count': sumRoll(6, 1)
+                }
+                break;
+            case 3:
+                return {
+                    'type': 'zombie',
+                    'count': sumRoll(4, 1)
+                }
+                break;
+            case 4:
+                return {
+                    'type': 'giant rat',
+                    'count': sumRoll(4, 2)
+                }
+                break;
+            case 5:
+                return {
+                    'type': 'giant ant',
+                    'count': sumRoll(4, 1)
+                }
+                break;
+            }
+        }
+
+        var InDungeon = 0;
+        var InBattle = 1;
+
+        function Game() {
+            var self = this;
+            var mode = InDungeon;
+
+            this.inBattle = function () {
+                return mode == InBattle;
+            }
+
+            this.battleTurn = new Observable(0);
+            this.dungeonTurn = new Observable(1);
+
+            this.battleTurn.addObserver(function (value) {
+                if (value > 0 && value % 10 == 0) {
+                    self.dungeonTurn.inc();
+                }
+            });
+
+            this.startBattle = function () {
+                mode = InBattle;
+                self.battleTurn.set(1);
+            }
+
+            this.endBattle = function () {
+                mode = InDungeon;
+                self.battleTurn.set(0);
+            }
+
+            this.nextTurn = function () {
+                if (mode == InBattle) {
+                    self.battleTurn.inc();
+                } else {
+                    self.dungeonTurn.inc();
+                }
+            }
+        }
+
+        $(function () {
+            var game = new Game();
+            var battleToggleButton = $('#battle-toggle-button');
+            var nextTurnButton = $('#next-turn-button');
+            var addEightHoursButton = $('#add-eight-hours-button');
+            var battleTurnLabel = $('#battle-turn-label');
+            var dungeonTurnLabel = $('#dungeon-turn-label');
+            var battleTimeLabel = $('#battle-time-label');
+            var dungeonTimeDaysLabel = $('#dungeon-time-days-label');
+            var dungeonTimeHoursLabel = $('#dungeon-time-hours-label');
+
+            game.battleTurn.addObserver(function (value) {
+                battleTurnLabel.text(value);
+                battleTimeLabel.text(value);
+            });
+
+            game.dungeonTurn.addObserver(function (value) {
+                dungeonTurnLabel.text(value);
+                dungeonTimeDaysLabel.text(Math.floor(value / (24 * 6)));
+                dungeonTimeHoursLabel.text(Math.floor((value / 6) % 24));
+                if (value % 3 == 0) {
+                    var encounter = generateRandomEncounter();
+                    if (encounter) {
+                        $('#encounter-description').text(encounter.count + ' ' + encounter.type + '(s)');
+                    } else {
+                        $('#encounter-description').text('none (' + value + ')');
+                    }
+                }
+            });
+
+            battleToggleButton.click(function () {
+                if (!game.inBattle()) {
+                    battleToggleButton.removeClass('btn-danger');
+                    battleToggleButton.addClass('btn-success');
+                    battleToggleButton.text('End battle');
+                    game.startBattle();
+                } else {
+                    battleToggleButton.addClass('btn-danger');
+                    battleToggleButton.removeClass('btn-success');
+                    battleToggleButton.text('Start battle');
+                    game.endBattle();
+                }
+            });
+            nextTurnButton.click(game.nextTurn);
+            addEightHoursButton.click(function () {
+                game.dungeonTurn.inc(6 * 8);
+            });
+        });
+    </script>
+</head>
+<body>
+    <div id="turn-counter">
+        <p>
+            <span>Battle turn:</span>
+            <span id="battle-turn-label">0</span>
+            <span>&mdash;</span>
+            <span id="battle-time-label">0</span>
+            <span>minute(s)</span>
+        </p>
+        <p>
+            <span>Dungeon turn:</span>
+            <span id="dungeon-turn-label">0</span>
+            <span>&mdash;</span>
+            <span id="dungeon-time-days-label">0</span>
+            <span>days(s)</span>
+            <span>,</span>
+            <span id="dungeon-time-hours-label">0</span>
+            <span>hour(s)</span>
+        </p>
+        <button type="button" class="btn btn-danger" id="battle-toggle-button">Start battle</button>
+        <button type="button" class="btn btn-default" id="next-turn-button">Next turn</button>
+        <button type="button" class="btn btn-default" id="add-eight-hours-button">+8 hours</button>
+    </div>
+    <div id="encounter">
+        <span>Encounter:</span>
+        <span id="encounter-description">none</span>
+    </div>
+</body>
+</html>
