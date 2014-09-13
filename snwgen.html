@@ -76,7 +76,7 @@
             <div class="col-md-2">
                 <div class="input-group">
                     <span class="input-group-addon">Quantity</span>
-                    <span class="form-control">{{quantity}}</span>
+                    <span class="form-control quantity">{{quantity}}</span>
                 </div>
             </div>
             <div class="col-md-2">
@@ -432,14 +432,15 @@
 
                         var domNode = inventoryItemTemplate(item);
                         var pos = inventory.length - 1;
-                        $(domNode).find('.btn-success').click(function () {
+                        $('#inventory-list').append(domNode);
+                        $('#inventory-list').last().find('.btn-success').click(function () {
                             var item = inventory[pos];
 
                             item.quantity++;
 
-                            $('#inventory-list').eq(pos).html(inventoryItemTemplate(item));
+                            $('#inventory-list').eq(pos).find('.quantity').text(item.quantity);
                         });
-                        $(domNode).find('.btn-danger').click(function () {
+                        $('#inventory-list').last().find('.btn-danger').click(function () {
                             var item = inventory[pos];
 
                             if (item.quantity === 0) {
@@ -448,9 +449,8 @@
 
                             item.quantity--;
 
-                            $('#inventory-list').eq(pos).html(inventoryItemTemplate(item));
+                            $('#inventory-list').eq(pos).find('.quantity').text(item.quantity);
                         });
-                        $('#inventory-list').append(domNode);
                     }
                 } catch (e) {
                     $('#status').val(e.message);
