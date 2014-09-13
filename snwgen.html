@@ -17,7 +17,6 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
 
-
     <style type="text/css">
         #dump {
             font-size: 18pt;
@@ -38,6 +37,16 @@
             min-width: 100px;
             text-align: left;
         }*/
+
+        #character-sheet {
+            float: left;
+            width: 500px;
+        }
+
+        #character-sheet .input-group-addon {
+            min-width: 200px;
+            text-align: left;
+        }
 
         #race-group input[readonly] {
             cursor: default;
@@ -350,29 +359,76 @@
         }
 
         function dumpCharacter(character) {
-            var buffer = "";
-            buffer += "Modifiers\n";
-            for (var key in character.modifiers) {
-                buffer += "  " + key + ": " + character.modifiers[key] + "\n";
-            }
-            buffer += "\n";
-            buffer += "Abilities\n";
-            for (var i = 0; i < character.abilities.length; ++i) {
-                buffer += "  " + character.abilities[i] + "\n";
+            var model = {
+                'xp-bonus': character.modifiers['xp_bonus'],
+                'to-hit-bonus': character.modifiers['to_hit'],
+                'damage-bonus': character.modifiers['damage'],
+                'open-doors-chance': character.modifiers['open_doors'],
+                'carry-bonus': character.modifiers['carry'],
+                'missile-to-hit-bonus': character.modifiers['to_hit_missile'],
+                'armor-bonus': character.modifiers['armor'],
+                'hp-bonus': character.modifiers['hit_point'],
+                'raise-dead-chance': character.modifiers['raise_dead_survival'],
+                'max-additional-languages': character.modifiers['max_additional_languages'],
+                'max-spell-level': character.modifiers['max_spell_level'],
+                'learn-new-spell-chance': character.modifiers['new_spell_chance'],
+                'min-spell-per-level': character.modifiers['min_spells_per_level'],
+                'max-spell-per-level': character.modifiers['max_spells_per_level'],
+                'abilities': character.abilities.map(function (ability) { return { 'description': ability }; }),
+            };
+
+            if (character['class'] == 'thief') {
+                $('#thief-abilities-group').show();
+                model['climb-walls-chance'] =  character.thiefAbilities['climbWalls'];
+                model['delicate-tasks-chance'] = character.thiefAbilities['delicateTasks'];
+                model['hear-sounds-chance'] = character.thiefAbilities['hearSounds'];
+                model['hide-in-shadows-chance'] = character.thiefAbilities['hideInShadows'];
+                model['move-silently-chance'] = character.thiefAbilities['moveSilently'];
+                model['open-locks-chance'] = character.thiefAbilities['openLocks'];
+            } else {
+                $('#thief-abilities-group').hide();
             }
 
-            if (character.hasOwnProperty('thiefAbilities')) {
-                buffer += "\n";
-                buffer += "Thief abilities\n";
-                for (var key in character.thiefAbilities) {
-                    buffer += "  " + key + ": " + character.thiefAbilities[key] + "\n";
+            $('#character-sheet').html(characterSheetTemplate(model));
+
+            // var buffer = "";
+            // buffer += "Modifiers\n";
+            // for (var key in character.modifiers) {
+            //     buffer += "  " + key + ": " + character.modifiers[key] + "\n";
+            // }
+            // buffer += "\n";
+            // buffer += "Abilities\n";
+            // for (var i = 0; i < character.abilities.length; ++i) {
+            //     buffer += "  " + character.abilities[i] + "\n";
+            // }
+
+            // if (character.hasOwnProperty('thiefAbilities')) {
+            //     buffer += "\n";
+            //     buffer += "Thief abilities\n";
+            //     for (var key in character.thiefAbilities) {
+            //         buffer += "  " + key + ": " + character.thiefAbilities[key] + "\n";
+            //     }
+            // }
+
+            // $("#dump").text(buffer);
+        }
+
+        function registerHandlebarHelpers() {
+            Handlebars.registerHelper('list', function(items, options) {
+                var out = "<ul class=\"list-group\">";
+
+                if (items) {
+                    for(var i = 0, l = items.length; i < l; ++i) {
+                        out = out + "<li class=\"list-group-item\">" + options.fn(items[i]) + "</li>";
+                    }
                 }
-            }
 
-            $("#dump").text(buffer);
+                return out + "</ul>";
+            });
         }
 
         var inventoryItemTemplate;
+        var characterSheetTemplate;
         var character;
 
         function saveState() {
@@ -425,10 +481,7 @@
                 $('#charisma').val(character.attributes.charisma);
 
                 $('#race').val(character.race);
-                $('#race-group a').text(character.race);
-
                 $('#class').val(character['class']);
-                $('#class-group a').text(character['class']);
 
                 $('#armor-class').val(character.armor_class);
                 $('#weight-carried').val(character.weight);
@@ -443,6 +496,13 @@
 
         $(document).ready(function () {
             inventoryItemTemplate = Handlebars.compile($('#inventory-item-template').html());
+            
+            registerHandlebarHelpers();
+
+            characterSheetTemplate = Handlebars.compile($('#character-sheet-template').html());
+
+            $('#character-sheet').html(characterSheetTemplate({}));
+            $('#thief-abilities-group').hide();
 
             var characterRace = $('#race');
             var characterClass = $('#class');
@@ -469,7 +529,7 @@
                     $('#gold-pieces').val(character.gold);
                     $('#experience-points').val(character.xp);
 
-                    dumpCharacter(character);
+                    dumpCharacter(character, characterSheetTemplate);
 
                     saveState();
                 } catch (e) {
@@ -664,9 +724,109 @@
         <button type="button" class="btn btn-default" id="roll-attributes">Roll attributes</button>
         <button type="button" class="btn btn-default" id="generate">Generate</button>
     </div>
-    <div style="float: left;">
+
+    <script id="character-sheet-template" type="text/x-handlebars-template">
+        <div class="panel-heading">Character Sheet</div>
+        <div id="modifiers-group">
+            <div class="input-group">
+                <label for="xp-bonus" class="input-group-addon">XP Bonus</label>
+                <input id="xp-bonus" type="text" class="form-control" value="{{ xp-bonus }}" />
+            </div>
+            <div class="input-group">
+                <label for="to-hit-bonus" class="input-group-addon">To Hit Bonus</label>
+                <input id="to-hit-bonus" type="text" class="form-control" value="{{ to-hit-bonus }}" />
+            </div>
+            <div class="input-group">
+                <label for="damage-bonus" class="input-group-addon">Damage Bonus</label>
+                <input id="damage-bonus" type="text" class="form-control" value="{{ damage-bonus }}"/>
+            </div>
+            <div class="input-group">
+                <label for="open-doors-chance" class="input-group-addon">Open Doors Chance</label>
+                <input id="open-doors-chance" type="text" class="form-control" value="{{ open-doors-chance }}" />
+            </div>
+            <div class="input-group">
+                <label for="carry-bonus" class="input-group-addon">Carry Bonus</label>
+                <input id="carry-bonus" type="text" class="form-control" value="{{ carry-bonus }}"/>
+            </div>
+            <div class="input-group">
+                <label for="missile-to-hit-bonus" class="input-group-addon">Missile To Hit Bonus</label>
+                <input id="missile-to-hit-bonus" type="text" class="form-control" value="{{ missile-to-hit-bonus }}" />
+            </div>
+            <div class="input-group">
+                <label for="armor-bonus" class="input-group-addon">Armor Bonus</label>
+                <input id="armor-bonus" type="text" class="form-control" value="{{ armor-bonus }}"/>
+            </div>
+            <div class="input-group">
+                <label for="hp-bonus" class="input-group-addon">HP Bonus</label>
+                <input id="hp-bonus" type="text" class="form-control" value="{{ hp-bonus }}"/>
+            </div>
+            <div class="input-group">
+                <label for="raise-dead-chance" class="input-group-addon">Raise Dead Chance</label>
+                <input id="raise-dead-chance" type="text" class="form-control" value="{{ raise-dead-chance }}"/>
+            </div>
+            <div class="input-group">
+                <label for="max-additional-languages" class="input-group-addon">Max Additional Languages</label>
+                <input id="max-additional-languages" type="text" class="form-control" value="{{ max-additional-languages }}"/>
+            </div>
+            <div class="input-group">
+                <label for="max-spell-level" class="input-group-addon">Max Spell Level</label>
+                <input id="max-spell-level" type="text" class="form-control" value="{{ max-spell-level }}"/>
+            </div>
+            <div class="input-group">
+                <label for="learn-new-spell-chance" class="input-group-addon">Learn New Spell Chance</label>
+                <input id="learn-new-spell-chance" type="text" class="form-control" value="{{ learn-new-spell-chance }}"/>
+            </div>
+            <div class="input-group">
+                <label for="min-spell-per-level" class="input-group-addon">Min Spell Per Level</label>
+                <input id="min-spell-per-level" type="text" class="form-control" value="{{ min-spell-per-level }}"/>
+            </div>
+            <div class="input-group">
+                <label for="max-spell-per-level" class="input-group-addon">Max Spell Per Level</label>
+                <input id="max-spell-per-level" type="text" class="form-control" value="{{ max-spell-per-level }}"/>
+            </div>
+        </div>
+        <div class="panel panel-default" id="abilities-group">
+            <div class="panel-heading">Abilities</div>
+            {{#list abilities}}
+                {{ description }}
+            {{/list}}
+        </div>
+        <div class="panel panel-default" id="thief-abilities-group">
+            <div class="panel-heading">Thief Abilities</div>
+            <div class="input-group">
+                <label for="climb-walls-chance" class="input-group-addon">Climb Walls Chance</label>
+                <input id="climb-walls-chance" type="text" class="form-control" value="{{ climb-walls-chance }}" />
+            </div>
+            <div class="input-group">
+                <label for="delicate-tasks-chance" class="input-group-addon">Delicate Tasks Chance</label>
+                <input id="delicate-tasks-chance" type="text" class="form-control" value="{{ delicate-tasks-chance }}" />
+            </div>
+            <div class="input-group">
+                <label for="hear-sounds-chance" class="input-group-addon">Hear Sounds Chance</label>
+                <input id="hear-sounds-chance" type="text" class="form-control" value="{{ hear-sounds-chance }}" />
+            </div>
+            <div class="input-group">
+                <label for="hide-in-shadows-chance" class="input-group-addon">Hide In Shadows Chance</label>
+                <input id="hide-in-shadows-chance" type="text" class="form-control" value="{{ hide-in-shadows-chance }}" />
+            </div>
+            <div class="input-group">
+                <label for="move-silently-chance" class="input-group-addon">Move Silently Chance</label>
+                <input id="move-silently-chance" type="text" class="form-control" value="{{ move-silently-chance }}" />
+            </div>
+            <div class="input-group">
+                <label for="open-locks-chance" class="input-group-addon">Open Locks Chance</label>
+                <input id="open-locks-chance" type="text" class="form-control" value="{{ open-locks-chance }}" />
+            </div>
+        </div>
+    </script>
+
+    <div class="panel panel-default" id="character-sheet">
+    </div>
+
+<!--     <div style="float: left;">
         <textarea id="dump" rows="20" cols="80"></textarea>
     </div>
+ -->
     <div style="clear: both;"></div>
     <div class="panel panel-default">
         <div class="panel-heading">
