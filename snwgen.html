@@ -322,6 +322,9 @@
                 },
                 bonuses: [],
                 abilities: [],
+                inventory: [],
+                weight: 0,
+                gold: 0
             };
         }
 
@@ -363,7 +366,7 @@
         }
 
         var inventoryItemTemplate;
-        var inventory = [];
+        var character;
 
         $(document).ready(function () {
             var inventoryItemTemplate = Handlebars.compile($('#inventory-item-template').html());
@@ -385,7 +388,7 @@
             });
             $('#generate').click(function () {
                 try {
-                    var character = makeCharacter();
+                    character = makeCharacter();
                     computeCharacterStats(character);
                     dumpCharacter(character);
                 } catch (e) {
@@ -408,6 +411,19 @@
                         quantity = parseInt(quantityString);
                     }
 
+                    var found = false;
+                    for (var i = 0; i < character.inventory.length; ++i) {
+                        if (character.inventory[i].name === name) {
+                            found = true;
+
+                            character.inventory[i].quantity += quantity;
+                            character.weight += weight * quantity;
+
+                            $('#inventory-list').eq(i).find('.quantity').text(character.inventory[i].quantity);
+                            break;
+                        }
+                    }
+
                     var item = {
                         name: name,
                         damage: damage,
@@ -416,40 +432,34 @@
                         quantity: quantity
                     };
 
-                    var found = false;
-                    for (var i = 0; i < inventory.length; i++) {
-                        if (inventory[i].name === name) {
-                            found = true;
-
-                            inventory[i].quantity += quantity;
-                            $('#inventory-list').eq(i).html(inventoryItemTemplate(inventory[i]));
-                            break;
-                        }
-                    }
-
                     if (!found) {
-                        inventory.push(item);
+                        character.inventory.push(item);
 
-                        var domNode = inventoryItemTemplate(item);
-                        var pos = inventory.length - 1;
-                        $('#inventory-list').append(domNode);
-                        $('#inventory-list').last().find('.btn-success').click(function () {
-                            var item = inventory[pos];
+                        var pos = character.inventory.length - 1;
+                        $('#inventory-list').append(inventoryItemTemplate(item));
+
+                        var domNode = $('#inventory-list').last();
+                        console.log(domNode);
+                        domNode.find('.btn-success').click(function () {
+                            var item = character.inventory[pos];
 
                             item.quantity++;
+                            character.weight += item.weight;
 
-                            $('#inventory-list').eq(pos).find('.quantity').text(item.quantity);
+                            domNode.find('.quantity').text(item.quantity);
                         });
-                        $('#inventory-list').last().find('.btn-danger').click(function () {
-                            var item = inventory[pos];
+
+                        domNode.find('.btn-danger').click(function () {
+                            var item = character.inventory[pos];
 
                             if (item.quantity === 0) {
                                 return;
                             }
 
                             item.quantity--;
+                            character.weight -= item.weight;
 
-                            $('#inventory-list').eq(pos).find('.quantity').text(item.quantity);
+                            domNode.find('.quantity').text(item.quantity);
                         });
                     }
                 } catch (e) {
