@@ -30,7 +30,7 @@
         }
 
         #character-details .input-group-addon {
-            min-width: 110px;
+            min-width: 160px;
             text-align: left;
         }
 
@@ -324,7 +324,8 @@
                 abilities: [],
                 inventory: [],
                 weight: 0,
-                gold: 0
+                gold: 0,
+                xp: 0
             };
         }
 
@@ -390,7 +391,45 @@
                 try {
                     character = makeCharacter();
                     computeCharacterStats(character);
+
+                    $('#weight-carried').val(character.weight);
+                    $('#gold-pieces').val(character.gold);
+                    $('#experience-points').val(character.xp);
+
                     dumpCharacter(character);
+                } catch (e) {
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#weight-carried').change(function () {
+                try {
+                    var weightCarried = parseFloat($(this).val());
+                    if (weightCarried !== character.weight) {
+                        character.weight = weightCarried;
+                    }
+                } catch (e) {
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#gold-pieces').change(function () {
+                try {
+                    var goldPieces = parseFloat($(this).val());
+                    if (goldPieces !== character.gold) {
+                        character.gold = goldPieces;
+                    }
+                } catch (e) {
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#experience-points').change(function () {
+                try {
+                    var experiencePoints = parseInt($(this).val());
+                    if (experiencePoints !== character.xp) {
+                        character.xp = experiencePoints;
+                    }
                 } catch (e) {
                     $('#status').val(e.message);
                 }
@@ -401,7 +440,7 @@
                     var name = $('#name').val();
                     var damage = $('#damage').val();
                     var armorClass = $('#armor-class').val();
-                    var weight = parseInt($('#weight').val());
+                    var weight = parseFloat($('#weight').val());
                     var quantityString = $('#quantity').val();
                     
                     var quantity;
@@ -418,6 +457,8 @@
 
                             character.inventory[i].quantity += quantity;
                             character.weight += weight * quantity;
+                            
+                            $('#weight-carried').val(character.weight);
 
                             $('#inventory-list').eq(i).find('.quantity').text(character.inventory[i].quantity);
                             break;
@@ -435,29 +476,31 @@
                     if (!found) {
                         character.inventory.push(item);
 
-                        var pos = character.inventory.length - 1;
                         $('#inventory-list').append(inventoryItemTemplate(item));
 
-                        var domNode = $('#inventory-list').last();
-                        console.log(domNode);
-                        domNode.find('.btn-success').click(function () {
-                            var item = character.inventory[pos];
+                        character.weight += weight * quantity;
 
+                        $('#weight-carried').val(character.weight);
+
+                        var domNode = $('#inventory-list').last();
+                        domNode.find('.btn-success').click(function () {
                             item.quantity++;
                             character.weight += item.weight;
+
+                            $('#weight-carried').val(character.weight);
 
                             domNode.find('.quantity').text(item.quantity);
                         });
 
                         domNode.find('.btn-danger').click(function () {
-                            var item = character.inventory[pos];
-
                             if (item.quantity === 0) {
                                 return;
                             }
 
                             item.quantity--;
                             character.weight -= item.weight;
+
+                            $('#weight-carried').val(character.weight);
 
                             domNode.find('.quantity').text(item.quantity);
                         });
@@ -495,6 +538,18 @@
             <div class="input-group">
                 <label for="charisma" class="input-group-addon">Charisma</label>
                 <input id="charisma" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">Weight Carried</label>
+                <input id="weight-carried" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">Gold Pieces</label>
+                <input id="gold-pieces" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">Experience Points</label>
+                <input id="experience-points" type="text" class="form-control" />
             </div>
         </div>
 
