@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
@@ -29,7 +29,7 @@
         }
 
         #character-details .input-group-addon {
-            min-width: 110px;
+            min-width: 160px;
             text-align: left;
         }
 
@@ -331,6 +331,10 @@
                 },
                 bonuses: [],
                 abilities: [],
+                inventory: [],
+                weight: 0,
+                gold: 0,
+                xp: 0
             };
         }
 
@@ -349,7 +353,7 @@
         }
 
         function dumpCharacter(character, characterSheetTemplate) {
-            $('#character-sheet').html(characterSheetTemplate({
+            var model = {
                 'xp-bonus': character.modifiers['xp_bonus'],
                 'to-hit-bonus': character.modifiers['to_hit'],
                 'damage-bonus': character.modifiers['damage'],
@@ -365,13 +369,21 @@
                 'min-spell-per-level': character.modifiers['min_spells_per_level'],
                 'max-spell-per-level': character.modifiers['max_spells_per_level'],
                 'abilities': character.abilities.map(function (ability) { return { 'description': ability }; }),
-                'climb-walls-chance': character.thiefAbilities['climbWalls'],
-                'delicate-tasks-chance': character.thiefAbilities['delicateTasks'],
-                'hear-sounds-chance': character.thiefAbilities['hearSounds'],
-                'hide-in-shadows-chance': character.thiefAbilities['hideInShadows'],
-                'move-silently-chance': character.thiefAbilities['moveSilently'],
-                'open-locks-chance': character.thiefAbilities['openLocks']
-            }));
+            };
+
+            if (character['class'] == 'thief') {
+                $('#thief-abilities-group').show();
+                model['climb-walls-chance'] =  character.thiefAbilities['climbWalls'];
+                model['delicate-tasks-chance'] = character.thiefAbilities['delicateTasks'];
+                model['hear-sounds-chance'] = character.thiefAbilities['hearSounds'];
+                model['hide-in-shadows-chance'] = character.thiefAbilities['hideInShadows'];
+                model['move-silently-chance'] = character.thiefAbilities['moveSilently'];
+                model['open-locks-chance'] = character.thiefAbilities['openLocks'];
+            } else {
+                $('#thief-abilities-group').hide();
+            }
+
+            $('#character-sheet').html(characterSheetTemplate(model));
 
             // var buffer = "";
             // buffer += "Modifiers\n";
@@ -411,6 +423,7 @@
 
         var inventoryItemTemplate;
         var inventory = [];
+        var character;
 
         $(document).ready(function () {
             registerHandlebarHelpers();
@@ -419,6 +432,7 @@
             var inventoryItemTemplate = Handlebars.compile($('#inventory-item-template').html());
 
             $('#character-sheet').html(characterSheetTemplate({}));
+            $('#thief-abilities-group').hide();
 
             var characterRace = $('#race');
             var characterClass = $('#class');
@@ -437,9 +451,47 @@
             });
             $('#generate').click(function () {
                 try {
-                    var character = makeCharacter();
+                    character = makeCharacter();
                     computeCharacterStats(character);
+
+                    $('#weight-carried').val(character.weight);
+                    $('#gold-pieces').val(character.gold);
+                    $('#experience-points').val(character.xp);
+
                     dumpCharacter(character, characterSheetTemplate);
+                } catch (e) {
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#weight-carried').change(function () {
+                try {
+                    var weightCarried = parseFloat($(this).val());
+                    if (weightCarried !== character.weight) {
+                        character.weight = weightCarried;
+                    }
+                } catch (e) {
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#gold-pieces').change(function () {
+                try {
+                    var goldPieces = parseFloat($(this).val());
+                    if (goldPieces !== character.gold) {
+                        character.gold = goldPieces;
+                    }
+                } catch (e) {
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#experience-points').change(function () {
+                try {
+                    var experiencePoints = parseInt($(this).val());
+                    if (experiencePoints !== character.xp) {
+                        character.xp = experiencePoints;
+                    }
                 } catch (e) {
                     $('#status').val(e.message);
                 }
@@ -450,7 +502,7 @@
                     var name = $('#name').val();
                     var damage = $('#damage').val();
                     var armorClass = $('#armor-class').val();
-                    var weight = parseInt($('#weight').val());
+                    var weight = parseFloat($('#weight').val());
                     var quantityString = $('#quantity').val();
                     
                     var quantity;
@@ -458,6 +510,21 @@
                         quantity = 1;
                     } else {
                         quantity = parseInt(quantityString);
+                    }
+
+                    var found = false;
+                    for (var i = 0; i < character.inventory.length; ++i) {
+                        if (character.inventory[i].name === name) {
+                            found = true;
+
+                            character.inventory[i].quantity += quantity;
+                            character.weight += weight * quantity;
+                            
+                            $('#weight-carried').val(character.weight);
+
+                            $('#inventory-list').eq(i).find('.quantity').text(character.inventory[i].quantity);
+                            break;
+                        }
                     }
 
                     var item = {
@@ -468,40 +535,36 @@
                         quantity: quantity
                     };
 
-                    var found = false;
-                    for (var i = 0; i < inventory.length; i++) {
-                        if (inventory[i].name === name) {
-                            found = true;
-
-                            inventory[i].quantity += quantity;
-                            $('#inventory-list').eq(i).html(inventoryItemTemplate(inventory[i]));
-                            break;
-                        }
-                    }
-
                     if (!found) {
-                        inventory.push(item);
+                        character.inventory.push(item);
 
-                        var domNode = inventoryItemTemplate(item);
-                        var pos = inventory.length - 1;
-                        $('#inventory-list').append(domNode);
-                        $('#inventory-list').last().find('.btn-success').click(function () {
-                            var item = inventory[pos];
+                        $('#inventory-list').append(inventoryItemTemplate(item));
 
+                        character.weight += weight * quantity;
+
+                        $('#weight-carried').val(character.weight);
+
+                        var domNode = $('#inventory-list').last();
+                        domNode.find('.btn-success').click(function () {
                             item.quantity++;
+                            character.weight += item.weight;
 
-                            $('#inventory-list').eq(pos).find('.quantity').text(item.quantity);
+                            $('#weight-carried').val(character.weight);
+
+                            domNode.find('.quantity').text(item.quantity);
                         });
-                        $('#inventory-list').last().find('.btn-danger').click(function () {
-                            var item = inventory[pos];
 
+                        domNode.find('.btn-danger').click(function () {
                             if (item.quantity === 0) {
                                 return;
                             }
 
                             item.quantity--;
+                            character.weight -= item.weight;
 
-                            $('#inventory-list').eq(pos).find('.quantity').text(item.quantity);
+                            $('#weight-carried').val(character.weight);
+
+                            domNode.find('.quantity').text(item.quantity);
                         });
                     }
                 } catch (e) {
@@ -537,6 +600,18 @@
             <div class="input-group">
                 <label for="charisma" class="input-group-addon">Charisma</label>
                 <input id="charisma" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">Weight Carried</label>
+                <input id="weight-carried" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">Gold Pieces</label>
+                <input id="gold-pieces" type="text" class="form-control" />
+            </div>
+            <div class="input-group">
+                <label class="input-group-addon">Experience Points</label>
+                <input id="experience-points" type="text" class="form-control" />
             </div>
         </div>
 
