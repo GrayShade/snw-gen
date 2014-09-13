@@ -61,6 +61,13 @@
     <script src="handlebars-v2.0.0.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 
+    <script id="alert-template" type="text/x-handlebars-template">
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+            {{message}}
+        </div>
+    </script>
+
     <script id="inventory-item-template" type="text/x-handlebars-template">
         <div class="row">
             <div class="col-md-2">
@@ -427,22 +434,26 @@
             });
         }
 
+        var alertTemplate;
         var inventoryItemTemplate;
         var characterSheetTemplate;
         var character;
+
+        function addAlert(message) {
+            $('#status-region').append(alertTemplate({ message: message }));
+        }
 
         function saveState() {
             localStorage["character"] = JSON.stringify(character);
         }
 
         function addInventoryLine(item) {
-            $('#inventory-list').append(inventoryItemTemplate(item));
+            var domNode = $(inventoryItemTemplate(item)).appendTo($('#inventory-list'));
 
             character.weight += item.weight * item.quantity;
 
             $('#weight-carried').val(character.weight);
 
-            var domNode = $('#inventory-list').last();
             domNode.find('.btn-success').click(function () {
                 item.quantity++;
                 character.weight += item.weight;
@@ -495,6 +506,7 @@
         }
 
         $(document).ready(function () {
+            alertTemplate = Handlebars.compile($('#alert-template').html());
             inventoryItemTemplate = Handlebars.compile($('#inventory-item-template').html());
             
             registerHandlebarHelpers();
@@ -533,12 +545,16 @@
 
                     saveState();
                 } catch (e) {
-                    $('#status').val(e.message);
+                    addAlert(e.message);
                 }
             });
 
             $('#save').click(function () {
                 saveState();
+            });
+
+            $('#dump').click(function () {
+                addAlert(JSON.stringify(character));
             });
 
             $('#weight-carried').change(function () {
@@ -549,7 +565,7 @@
                         saveState();
                     }
                 } catch (e) {
-                    $('#status').val(e.message);
+                    addAlert(e.message);
                 }
             });
 
@@ -561,7 +577,7 @@
                         saveState();
                     }
                 } catch (e) {
-                    $('#status').val(e.message);
+                    addAlert(e.message);
                 }
             });
 
@@ -573,7 +589,7 @@
                         saveState();
                     }
                 } catch (e) {
-                    $('#status').val(e.message);
+                    addAlert(e.message);
                 }
             });
 
@@ -585,7 +601,7 @@
                         saveState();
                     }
                 } catch (e) {
-                    $('#status').val(e.message);
+                    addAlert(e.message);
                 }
             });
 
@@ -593,7 +609,7 @@
                 try {
                     var name = $('#name').val();
                     var damage = $('#damage').val();
-                    var armorClass = $('#armor-class2').val();
+                    var armorClass = parseInt($('#armor-class2').val());
                     var weight = parseFloat($('#weight').val());
                     var quantityString = $('#quantity').val();
                     
@@ -637,7 +653,7 @@
                         saveState();
                     }
                 } catch (e) {
-                    $('#status').val(e.message);
+                    addAlert(e.message);
                 }
             });
 
@@ -877,9 +893,10 @@
     <div>
         <button id="save" class="btn btn-success">Save</button>
     </div>
-    <p />
     <div>
-        <input type="text" id="status" style="width:50%" />
+        <button id="dump" class="btn btn-success">Dump</button>
     </div>
+    <p />
+    <div id="status-region" />
 </body>
 </html>
