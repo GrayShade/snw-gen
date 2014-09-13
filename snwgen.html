@@ -385,39 +385,21 @@
             };
 
             if (character['class'] == 'thief') {
-                $('#thief-abilities-group').show();
                 model['climb-walls-chance'] =  character.thiefAbilities['climbWalls'];
                 model['delicate-tasks-chance'] = character.thiefAbilities['delicateTasks'];
                 model['hear-sounds-chance'] = character.thiefAbilities['hearSounds'];
                 model['hide-in-shadows-chance'] = character.thiefAbilities['hideInShadows'];
                 model['move-silently-chance'] = character.thiefAbilities['moveSilently'];
                 model['open-locks-chance'] = character.thiefAbilities['openLocks'];
-            } else {
-                $('#thief-abilities-group').hide();
             }
 
             $('#character-sheet').html(characterSheetTemplate(model));
 
-            // var buffer = "";
-            // buffer += "Modifiers\n";
-            // for (var key in character.modifiers) {
-            //     buffer += "  " + key + ": " + character.modifiers[key] + "\n";
-            // }
-            // buffer += "\n";
-            // buffer += "Abilities\n";
-            // for (var i = 0; i < character.abilities.length; ++i) {
-            //     buffer += "  " + character.abilities[i] + "\n";
-            // }
-
-            // if (character.hasOwnProperty('thiefAbilities')) {
-            //     buffer += "\n";
-            //     buffer += "Thief abilities\n";
-            //     for (var key in character.thiefAbilities) {
-            //         buffer += "  " + key + ": " + character.thiefAbilities[key] + "\n";
-            //     }
-            // }
-
-            // $("#dump").text(buffer);
+            if (character['class'] == 'thief') {
+                $('#thief-abilities-group').show();
+            } else {
+                $('#thief-abilities-group').hide();
+            }
         }
 
         function registerHandlebarHelpers() {
