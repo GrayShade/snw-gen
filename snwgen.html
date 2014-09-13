@@ -44,8 +44,47 @@
     </style>
 
     <script src="jquery-2.1.1.min.js"></script>
+    <script src="handlebars-v2.0.0.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
 
+    <script id="inventory-item-template" type="text/x-handlebars-template">
+        <div class="row">
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-addon">Item</span>
+                    <span class="form-control">{{name}}</span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-addon">Damage</span>
+                    <span class="form-control">{{damage}}</span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group">
+                    <label for="armor-class" class="input-group-addon">Armor Class</label>
+                    <span class="form-control">{{armorClass}}</span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-addon">Weight</span>
+                    <span class="form-control">{{weight}}</span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="input-group">
+                    <span class="input-group-addon">Quantity</span>
+                    <span class="form-control">{{quantity}}</span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-success">+</button>
+                <button class="btn btn-danger">-</button>
+            </div>
+        </div>
+    </script>
     <script>
         "use strict";
 
@@ -323,7 +362,12 @@
             $("#dump").text(buffer);
         }
 
+        var inventoryItemTemplate;
+        var inventory = [];
+
         $(document).ready(function () {
+            var inventoryItemTemplate = Handlebars.compile($('#inventory-item-template').html());
+
             var characterRace = $('#race');
             var characterClass = $('#class');
             $('#race-group a').click(function () {
@@ -345,7 +389,71 @@
                     computeCharacterStats(character);
                     dumpCharacter(character);
                 } catch (e) {
-                    $('#dump').text(e.message);
+                    $('#status').val(e.message);
+                }
+            });
+
+            $('#inventory-add').click(function () {
+                try {
+                    var name = $('#name').val();
+                    var damage = $('#damage').val();
+                    var armorClass = $('#armor-class').val();
+                    var weight = parseInt($('#weight').val());
+                    var quantityString = $('#quantity').val();
+                    
+                    var quantity;
+                    if (quantityString === "") {
+                        quantity = 1;
+                    } else {
+                        quantity = parseInt(quantityString);
+                    }
+
+                    var item = {
+                        name: name,
+                        damage: damage,
+                        armorClass: armorClass,
+                        weight: weight,
+                        quantity: quantity
+                    };
+
+                    var found = false;
+                    for (var i = 0; i < inventory.length; i++) {
+                        if (inventory[i].name === name) {
+                            found = true;
+
+                            inventory[i].quantity += quantity;
+                            $('#inventory-list').eq(i).html(inventoryItemTemplate(inventory[i]));
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        inventory.push(item);
+
+                        var domNode = inventoryItemTemplate(item);
+                        var pos = inventory.length - 1;
+                        $(domNode).find('.btn-success').click(function () {
+                            var item = inventory[pos];
+
+                            item.quantity++;
+
+                            $('#inventory-list').eq(pos).html(inventoryItemTemplate(item));
+                        });
+                        $(domNode).find('.btn-danger').click(function () {
+                            var item = inventory[pos];
+
+                            if (item.quantity === 0) {
+                                return;
+                            }
+
+                            item.quantity--;
+
+                            $('#inventory-list').eq(pos).html(inventoryItemTemplate(item));
+                        });
+                        $('#inventory-list').append(domNode);
+                    }
+                } catch (e) {
+                    $('#status').val(e.message);
                 }
             });
         });
@@ -355,27 +463,27 @@
     <div id="character-details">
         <div id="attribute-group">
             <div class="input-group">
-                <span class="input-group-addon">Strength</span>
+                <label for="strength" class="input-group-addon">Strength</label>
                 <input id="strength" type="text" class="form-control" />
             </div>
             <div class="input-group">
-                <span class="input-group-addon">Dexterity</span>
+                <label for="dexterity" class="input-group-addon">Dexterity</label>
                 <input id="dexterity" type="text" class="form-control" />
             </div>
             <div class="input-group">
-                <span class="input-group-addon">Constitution</span>
+                <label for="constitution" class="input-group-addon">Constitution</label>
                 <input id="constitution" type="text" class="form-control" />
             </div>
             <div class="input-group">
-                <span class="input-group-addon">Intelligence</span>
+                <label for="intelligence" class="input-group-addon">Intelligence</label>
                 <input id="intelligence" type="text" class="form-control" />
             </div>
             <div class="input-group">
-                <span class="input-group-addon">Wisdom</span>
+                <label for="wisdom" class="input-group-addon">Wisdom</label>
                 <input id="wisdom" type="text" class="form-control" />
             </div>
             <div class="input-group">
-                <span class="input-group-addon">Charisma</span>
+                <label for="charisma" class="input-group-addon">Charisma</label>
                 <input id="charisma" type="text" class="form-control" />
             </div>
         </div>
@@ -383,7 +491,7 @@
         <div class="input-group" id="race-group">
             <div class="input-group">
                 <span class="input-group-addon">Race</span>
-                <input id="race" type="text" class="form-control" readonly="readonly" value="Dwarf"/>
+                <input id="race" type="text" class="form-control" readonly="readonly" value="Dwarf" />
                 <div class="input-group-btn">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu dropdown-menu-right" role="menu">
@@ -399,7 +507,7 @@
         <div class="input-group" id="class-group">
             <div class="input-group">
                 <span class="input-group-addon">Class</span>
-                <input id="class" type="text" class="form-control" readonly="readonly" value="Cleric"/>
+                <input id="class" type="text" class="form-control" readonly="readonly" value="Cleric" />
                 <div class="input-group-btn">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
                     <ul class="dropdown-menu dropdown-menu-right" role="menu">
@@ -415,8 +523,57 @@
         <button type="button" class="btn btn-default" id="generate">Generate</button>
     </div>
     <div style="float: left;">
-        <textarea id="dump" rows=20 cols=80></textarea>
+        <textarea id="dump" rows="20" cols="80"></textarea>
     </div>
     <div style="clear: both;"></div>
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">Inventory</h3>
+        </div>
+        <div id="inventory-list" class="panel-body" />
+    </div>
+    <p />
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="input-group">
+                        <label for="name" class="input-group-addon">Item</label>
+                        <input type="text" id="name" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group">
+                        <label for="damage" class="input-group-addon">Damage</label>
+                        <input type="text" id="damage" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group">
+                        <label for="armor-class" class="input-group-addon">Armor Class</label>
+                        <input type="text" id="armor-class" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group">
+                        <label for="weight" class="input-group-addon">Weight</label>
+                        <input type="text" id="weight" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="input-group">
+                        <label for="quantity" class="input-group-addon">Quantity</label>
+                        <input type="text" id="quantity" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button id="inventory-add" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <input type="text" id="status" style="width:50%" />
+    </div>
 </body>
 </html>
